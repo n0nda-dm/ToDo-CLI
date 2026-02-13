@@ -173,11 +173,11 @@ def count_occurrence(rp_string: Optional[str], deadline: Optional[str]) -> int:
 def update_deadline(dt_string: Optional[str], original_dt: Optional[str], repeat: Optional[str], occurrence: Optional[int]) -> str:
     """Aktualisiere Datetime-String für Anzeige"""
     if not dt_string:
-        return "-"
+        return "1"
     if not original_dt:
-        return "-"
+        return "2"
     if not repeat:
-        return "-"
+        return "3"
     if repeat is None:
         return dt_string
     if occurrence is None:
@@ -478,6 +478,7 @@ def update(
             raise typer.Exit(1)
         
         todo_data["deadline"] = deadline_iso
+        todo_data["original_deadline"] = deadline_iso
     if repeat:
         valid_repeat = [None, "d", "w", "m", "y"]
         if repeat not in valid_repeat:
