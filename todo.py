@@ -10,6 +10,9 @@ from typing import Optional
 from pathlib import Path
 import json
 from datetime import datetime
+from datetime import timedelta
+from datetime import date
+from dateutil.relativedelta import relativedelta
 
 # Typer App initialisieren
 app = typer.Typer(help="📝 ToDo-CLI - Verwalte deine Aufgaben")
@@ -128,6 +131,90 @@ def save_todo(todo_data: dict, status: str = "working"):
     
     with open(filepath, "w") as f:
         json.dump(todo_data, f, indent=4)
+    
+
+def format_repeat(rp_string: Optional[str]) -> str:
+    """Formatiere Repeat-String für Anzeige"""
+    if not rp_string:
+        return "-"
+    
+    if rp_string == "d":
+        return "täglich"
+    elif rp_string == "w":
+        return "wöchentlich"
+    elif rp_string == "m":
+        return "monatlich"
+    elif rp_string == "y":
+        return "jährlich"
+    elif rp_string is None:
+        return "-"
+    else:
+        return rp_string
+    
+
+def count_occurrence(rp_string: Optional[str], deadline: Optional[str]) -> int:
+    """Berechne Anzahl der Wie"""
+    if not rp_string:
+        return 0
+    if not deadline:
+        return 0
+
+    try:
+        deadline_dt = datetime.fromisoformat(deadline)
+        now = datetime.now()
+        diff = deadline_dt - now
+        
+        valid_repeat = ["d", "w", "m", "y"]
+        if diff.total_seconds() < 0 and rp_string in valid_repeat:
+            return 1
+        else:
+            return 0
+    except:
+        return 0
+
+
+def update_deadline(dt_string: Optional[str], original_dt: Optional[str], repeat: Optional[str], occurrence: Optional[int]) -> str:
+    """Aktualisiere Datetime-String für Anzeige"""
+    if not dt_string:
+        return "-"
+    if not original_dt:
+        return "-"
+    if not repeat:
+        return "-"
+    if repeat is None:
+        return dt_string
+    if occurrence is None:
+        return dt_string
+    
+    try:
+        dt = datetime.fromisoformat(dt_string)
+        o_dt = datetime.fromisoformat(original_dt)
+        now = datetime.now()
+        diff = dt - now
+
+        if diff.total_seconds() < 0:
+            # Tägliche Wiederholung
+            if repeat == "d":
+                dt = o_dt + relativedelta(days=+occurrence)
+            # Wöchentliche Wiederholung
+            elif repeat == "w":
+                dt = o_dt + relativedelta(weeks=+occurrence)
+            # Monatliche Wiederholung
+            elif repeat == "m":
+                dt = o_dt + relativedelta(months=+occurrence)
+            # Jährliche Wiederholung
+            elif repeat == "y":
+                dt = o_dt + relativedelta(years=+occurrence)
+            # Keine Wiederholung
+            else:
+                return dt_string
+            
+            return dt.isoformat()
+        
+        else:
+            return dt_string
+    except:
+        return dt_string
 
 
 def format_datetime(dt_string: Optional[str]) -> str:
@@ -136,7 +223,7 @@ def format_datetime(dt_string: Optional[str]) -> str:
         return "-"
     try:
         dt = datetime.fromisoformat(dt_string)
-        return dt.strftime("%d.%m.%Y – %H:%M")
+        return dt.strftime("%A – %d.%m.%Y – %H:%M")
     except:
         return dt_string
 
@@ -151,7 +238,7 @@ def get_deadline_color(deadline: Optional[str]) -> str:
     """
     if not deadline:
         return "white"
-    
+
     try:
         deadline_dt = datetime.fromisoformat(deadline)
         now = datetime.now()
@@ -167,13 +254,13 @@ def get_deadline_color(deadline: Optional[str]) -> str:
         return "white"
     
 
-
 @app.command()
 def create(
     title: str = typer.Argument(..., help="Titel der ToDo"),
     description: str = typer.Option("", "--description", "-d", help="Beschreibung der ToDo"),
     priority: str = typer.Option("medium", "--priority", "-p", help="Priorität: low/medium/high/urgent"),
     deadline: Optional[str] = typer.Option(None, "--deadline", help="Deadline im Format: YYYY.MM.DD-HH:MM"),
+    repeat: Optional[str] = typer.Option(None, "--repeat", "-r", help="Wiederholung: 'd' = täglich, 'w' = wöchentlich, 'm' = monatlich, 'y' = jährlich")
 ):
     """Erstelle eine neue ToDo"""
     ensure_directories()
@@ -211,6 +298,12 @@ def create(
             console.print("[red]Fehler:[/red] Deadline-Format ungültig. Nutze: dd.mm.yyyy-HH:MM")
             console.print("[yellow]Beispiel:[/yellow] 15.02.2026-14:30")
             raise typer.Exit(1)
+        
+    # Validiere Wiederholungen
+    valid_repeat = [None, "d", "w", "m", "y"]
+    if repeat not in valid_repeat:
+        console.print(f"[red]Fehler:[/red] Wiederholung muss einer sein von: {', '.join(valid_repeat)}")
+        raise typer.Exit(1)
     
     # Erstelle ToDo-Daten
     todo_data = {
@@ -220,6 +313,9 @@ def create(
         "priority": priority,
         "status": "working",
         "deadline": deadline_iso,
+        "original_deadline": deadline_iso,
+        "repeat": repeat,
+        "occurrence_count": 0,
         "created_at": datetime.now().isoformat(),
         "finished_at": None
     }
@@ -266,12 +362,18 @@ def list(
     table.add_column("Priorität", style="magenta")
     table.add_column("Status", style="green")
     table.add_column("Deadline", style="yellow")
+    table.add_column("Wiederholung", style="blue")
 
     for todo in sorted(todos, key=lambda x: x["id"]):
         # Farbe für Status
         status_color = "green" if todo["status"] == "working" else "dim"
 
-        # Farbe für Deadline
+        #Wiederholung-Anpassungen
+        repeat_formatted = format_repeat(todo["repeat"])
+        todo["occurrence_count"] += count_occurrence(todo["repeat"], todo["deadline"])
+
+        # Deadline-Anpassungen
+        todo["deadline"] = update_deadline(todo["deadline"], todo["original_deadline"], todo["repeat"], todo["occurrence_count"])
         deadline_color = get_deadline_color(todo["deadline"])
         deadline_formatted = format_datetime(todo["deadline"])
 
@@ -280,7 +382,8 @@ def list(
             todo["title"],
             todo["priority"],
             f"[{status_color}]{todo["status"]}[/{status_color}]",
-            f"[{deadline_color}]{deadline_formatted}[/{deadline_color}]"
+            f"[{deadline_color}]{deadline_formatted}[/{deadline_color}]",
+            f"{repeat_formatted}"
         )
 
     console.print(table)
@@ -296,7 +399,12 @@ def show(todo_id: int = typer.Argument(..., help="ID der ToDo")):
         console.print(f"[red]Fehler:[/red] ToDo mit ID {todo_id} nicht gefunden.")
         raise typer.Exit(1)
     
-    # Farbe für Deadline
+    #Wiederholung-Anpassungen
+    repeat_formatted = format_repeat(todo_data["repeat"])
+    todo_data["occurrence_count"] += count_occurrence(todo_data["repeat"], todo_data["deadline"])
+
+    # Deadline-Anpassungen
+    todo_data["deadline"] = update_deadline(todo_data["deadline"], todo_data["original_deadline"], todo_data["repeat"], todo_data["occurrence_count"])
     deadline_color = get_deadline_color(todo_data["deadline"])
     deadline_formatted = format_datetime(todo_data["deadline"])
     
@@ -307,6 +415,7 @@ def show(todo_id: int = typer.Argument(..., help="ID der ToDo")):
     console.print(f"[bold]Priorität:[/bold] {todo_data["priority"]}")
     console.print(f"[bold]Status:[/bold] {todo_data["status"]}")
     console.print(f"[bold]Deadline:[/bold] [{deadline_color}]{deadline_formatted}[/{deadline_color}]")
+    console.print(f"[bold]Wiederholung:[/bold] {repeat_formatted}")
     console.print(f"[bold]Erstellt am:[/bold] {format_datetime(todo_data["created_at"])}")
 
     if todo_data["finished_at"]:
@@ -323,6 +432,7 @@ def update(
     description: Optional[str] = typer.Option(None, "--description", "-d", help="Neue Beschreibung"),
     priority: Optional[str] = typer.Option(None, "--priority", "-p", help="Neue Priorität"),
     deadline: Optional[str] = typer.Option(None, "--deadline", help="Deadline im Format: YYYY.MM.DD-HH:MM"),
+    repeat: Optional[str] = typer.Option(None, "--repeat", "-r", help="Wiederholung: 'd' = täglich, 'w' = wöchentlich, 'm' = monatlich, 'y' = jährlich"),
     finished: bool = typer.Option(False, "--finished", "-f", help="Als abgeschlossen markieren")
 ):
     """Aktualisiere eine ToDo"""
@@ -371,6 +481,12 @@ def update(
             raise typer.Exit(1)
         
         todo_data["deadline"] = deadline_iso
+    if repeat:
+        valid_repeat = [None, "d", "w", "m", "y"]
+        if repeat not in valid_repeat:
+            console.print(f"[red]Fehler:[/red] Wiederholung muss einer sein von: {', '.join(valid_repeat)}")
+            raise typer.Exit(1)
+        todo_data["repeat"] = repeat
 
     # Status auf finished setzen
     if finished and todo_data["status"] == "working" and old_path is not None:
