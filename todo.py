@@ -10,8 +10,6 @@ from typing import Optional
 from pathlib import Path
 import json
 from datetime import datetime
-from datetime import timedelta
-from datetime import date
 from dateutil.relativedelta import relativedelta
 
 # Typer App initialisieren
@@ -53,34 +51,31 @@ def ensure_directories():
 
 def get_next_id() -> int:
     """Ermittle die nächste freie ID"""
+    import os
+
     # sicher stellen: Ordner existieren
     ensure_directories()
-
     todo_dir = get_todo_dir()
 
-    # Explizite Type Hintes (da es Probleme/Fehler ohne Type Hints und .glob gab)
+    # Neuer Versuch: os.listdir (da es mit .glob() usw. nur Probleme gab...)
     working_files: list[Path] = []
     finished_files: list[Path] = []
 
     try:
-        result = list((todo_dir / "working").glob("*.json"))
-        working_files = result if result is not None else []
+        working_path = todo_dir / "working"
+        if working_path.exists():
+            files = os.listdir(working_path)
+            working_files = [working_path / f for f in files if f.endswith('.json')]
     except Exception as e:
         console.print(f"[yellow]Warnung: Fehler beim Lesen von working/: {e}[/yellow]")
-        working_files = []
 
     try:
-        result = list((todo_dir / "finished").glob("*.json"))
-        finished_files = result if result is not None else []
+        finished_path = todo_dir / "finished"
+        if finished_path.exists():
+            files = os.listdir(finished_path)
+            finished_files = [finished_path / f for f in files if f.endswith('.json')]
     except Exception as e:
         console.print(f"[yellow]Warnung: Fehler beim Lesen von finished/: {e}[/yellow]")
-        finished_files = [] 
-
-    # Zusätzliche Sicherheit (falls es wieder Fehler(None) gibt)
-    if working_files is None:
-        working_files = []
-    if finished_files is None:
-        finished_files = []
     
     # Sammeln aller IDs
     all_ids: list[int] = []
@@ -88,7 +83,9 @@ def get_next_id() -> int:
 
     for todo_file in all_files:
         try:
-            all_ids.append(int(todo_file.stem))
+            # Extrahieren der ID aus Dateinamen (ohne .json)
+            file_id = int(todo_file.stem)
+            all_ids.append(file_id)
         except (ValueError, AttributeError):
             continue
 

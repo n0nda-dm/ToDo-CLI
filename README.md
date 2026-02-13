@@ -87,11 +87,13 @@ todo create "Arzttermin" \
 --description "Zahnarzt Dr. Müller" \
 --priority urgent \
 --deadline "15.02.2026-14:30"
+--repeat "w"
 ```
 #### Optionen:
 - -d, --description TEXT - Beschreibung der Aufgabe
 - -p, --priority [low|medium|high|urgent] - Priorität (Standard: medium)
 - --deadline TEXT - Deadline im Format dd.mm.yyyy-HH:MM
+- -r, --repeat [d|w|m|y] - Wiederholung (Standard: None)
 
 
 #### 📋 ToDos auflisten

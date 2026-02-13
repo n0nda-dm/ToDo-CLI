@@ -3,7 +3,10 @@ click==8.3.1
 markdown-it-py==4.0.0
 mdurl==0.1.2
 Pygments==2.19.2
+python-dateutil==2.9.0.post0
 rich==14.3.2
 shellingham==1.5.4
+six==1.17.0
+-e git+https://github.com/n0nda-dm/ToDo-CLI.git@b6a7b7b193fa2d842612e481dee141038b4ce791#egg=todo_cli
 typer==0.21.1
 typing_extensions==4.15.0
