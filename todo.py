@@ -177,7 +177,7 @@ def update_deadline(dt_string: Optional[str], original_dt: Optional[str], repeat
     if not original_dt:
         return "Fehler: update_deadline -> original_deadline"
     if not repeat:
-        return "-"
+        return dt_string
     if repeat is None:
         return dt_string
     if occurrence is None:
