@@ -21,6 +21,8 @@ build/
 DEVNOTES.md
 DEVNOTE.md
 MeineKommentare.txt
+error.log
+*.log
 
 # OS
 .DS_Store
