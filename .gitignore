@@ -19,7 +19,7 @@ ENV/
 dist/
 build/
 DEVNOTES.md
-Devnotes.md
+DEVNOTE.md
 MeineKommentare.txt
 
 # OS

@@ -15,8 +15,6 @@ Eine einfache, farbenfrohe Kommandozeilen-Aufgabenverwaltung geschrieben in Pyth
 - 📆 Optionale Deadlines mit Datum und Uhrzeit
 
 ---
----
---- 
 
 ## Installation
 ### Voraussetzungen
@@ -56,8 +54,6 @@ pip install -e .
 ```
 
 ---
----
----
 
 ## Verwendung
 
@@ -86,14 +82,18 @@ todo create "Aufgabe"
 todo create "Arzttermin" \
 --description "Zahnarzt Dr. Müller" \
 --priority urgent \
---deadline "15.02.2026-14:30"
---repeat "w"
+--start "15.02.2026-08:30" \
+--deadline "15.02.2026-14:30" \
+--repeat "w" \
+--every 4
 ```
-#### Optionen:
-- -d, --description TEXT - Beschreibung der Aufgabe
+##### Optionen:
+- --description TEXT - Beschreibung der Aufgabe
 - -p, --priority [low|medium|high|urgent] - Priorität (Standard: medium)
-- --deadline TEXT - Deadline im Format dd.mm.yyyy-HH:MM
+- -s, --start TEXT Start-Time im Format: dd.mm.yyyy-HH:MM
+- -d, --deadline TEXT - Deadline im Format: dd.mm.yyyy-HH:MM
 - -r, --repeat [d|w|m|y] - Wiederholung (Standard: None)
+- -e, --every INTEGER - Anpassungen der Wiederholungen (z.B.: -r m -e 4 = Wiederholung findet nicht monatlich, sondern alle 4 Monate statt)
 
 
 #### 📋 ToDos auflisten
@@ -121,8 +121,11 @@ todo show 5
 - Beschreibung
 - Priorität
 - Status
+- Start-Time (mit Farbwarnung!)
 - Deadline (mit Farbwarnung!)
+- Dauer in Stunden (solange Start und Deadline gegeben sind)
 - Erstellungsdatum
+- Abschlusshistorie (solange ein Datum bereits enthalten ist)
 - Abschlussdatum (falls erledigt)
 
 
@@ -143,7 +146,16 @@ todo update <ID> --finished
 # Mehrere Änderungen gleichzeitig
 todo update <ID> --title "Neuer Titel" --priority urgent --finished
 ```
-
+##### Optionen:
+- -t, --title TEXT - Neuer Titel
+- --description TEXT - Beschreibung der Aufgabe
+- -p, --priority [low|medium|high|urgent] - Priorität (Standard: medium)
+- -s, --start TEXT Start-Time im Format: dd.mm.yyyy-HH:MM
+- -d, --deadline TEXT - Deadline im Format: dd.mm.yyyy-HH:MM
+- -r, --repeat [d|w|m|y] - Wiederholung (Standard: None)
+- -e, --every INTEGER - Anpassungen der Wiederholungen (z.B.: -r m -e 4 = Wiederholung findet nicht monatlich, sondern alle 4 Monate statt)
+- -c, --completed BOOL - Eine sich wiederholende ToDo für die momentane Deadline als abgeschlossen markieren
+- -f, --finished BOOL - Eine ToDo endgültig abschließen 
 
 #### 🗑️ ToDo löschen
 ```bash
@@ -154,6 +166,11 @@ todo delete <ID>
 todo delete <ID> --force
 ```
 
+#### Migration 
+```bash
+# Alle ToDos aktualisieren (falls es neue Variablen/Werte gibt)
+todo migrate
+```
 
 #### ⚙️ Konfiguration
 ```bash
@@ -192,33 +209,30 @@ Jede ToDo wird als separate JSON-Datei gespeichert.
 
 ## 🔢 Prioritäten
 
-| Priorität | Beschreibung | Verwendung |
-|----------|----------|----------|
-| low  | Niedrig   | Kann warten   |
-| medium  | Mittel   | Standard-Priorität   |
-| high  | Hoch   | Wichtig   |
-| urgent  | Dringend   | Sofort erledigen!   |
+| Priorität | Beschreibung | Verwendung         |
+|-----------|--------------|--------------------|
+| low       | Niedrig      | Kann warten        |
+| medium    | Mittel       | Standard-Priorität |
+| high      | Hoch         | Wichtig            |
+| urgent    | Dringend     | Sofort erledigen!  |
 
----
----
 --- 
 
-## 📆 Deadline
+## 📆 Start-Time und Deadline
 
-### Deadline-Format
+### Format
 dd.mm.yyyy-HH:MM
 
 #### Beispiele:
+- 2026.02.15-08:30 -> 15. Februar 2026, 08:30 Uhr
 - 15.02.2026-14:30 -> 15. Februar 2026, 14:30 Uhr
 - 31.12.2026-23:59 -> 31. Dezember 2026, 23:59 Uhr
 
-### Deadline-Farben:
+### Farben:
 - 🔴 Rot - Deadline ist überschritten
 - 🟡 Gelb - Weniger als 24 Stunden verbleibend
 - 🟢 Grün - Noch mehr als 24 Stunden Zeit
 
----
----
 --- 
 
 ## 🛠️ Für Entwickler
@@ -255,8 +269,6 @@ todo-cli/
 - rich - Terminal-Formatierung und Farben
 - Python 3.8+ - Basis
 
----
----
 --- 
 
 ## Beispiel-Workflow
@@ -287,8 +299,6 @@ todo update 1 --finished
 todo list --finished
 ```
 
----
----
 --- 
 
 ## ❗ Häufige Probleme
@@ -323,8 +333,6 @@ todo config --show
 todo config --set-dir ~/todos
 ```
 
----
----
 --- 
 
 ## 📚 Quellen & Lernen
@@ -338,8 +346,6 @@ Verwendete Ressourcen:
 - Claude (Anthropic): Unterstützung bei Code-Struktur und Erklärungen
 - Stack Overflow, Reddit & W3Schools: Verschiedene Python- und CLI-Fragen, sowie Erklärungen 
 
----
----
 --- 
 
 ## Lernziele
@@ -349,37 +355,36 @@ Verwendete Ressourcen:
 - Rich Terminal-Formatierung
 - Datetime-Handling in Python
 
----
----
 --- 
 
 ## Mögliche zukünftige Features
 Ideen für mögliche Erweiterungen (keine Garantie):
 
 - Tags/Kategorien - Aufgaben nach Themen gruppieren
-- Recurring Tasks - Wiederkehrende Aufgaben automatisch erstellen
 - Export Funktion - Liste als CSV exportieren
 
 Weitere Vorschläge sind willkommen!
 
----
----
 --- 
 
 ## Status
-Version: 1.0.0
+Version: 1.1.0
 
 Alle Grundfunktionen sind implementiert und getestet. Das Projekt ist voll funktionsfähig.
 
----
----
+Update v1.1.0 nach neuen Features (start_time, Wiederholungsanpassungen & Abschlusshistorie(completed)):
+Die Start Zeit funktioniert. Wird angegeben und die Farbe wird auch angepasst.
+Ob die Start Zeit aktualisiert wird, wenn die Deadline abgelaufen ist und die Wiederholung stattfindet, muss aber noch getestet werden.
+Die Anzeige der Wiederholung wurde auch angepasst. 
+Noch wird es ca. 3 Wochen dauern bis ich die Ergebnisse der ersten Anpassungswiederholung (jede 4. Woche) habe.
+Die Abschlusshistorie hat nach dem ersten Versuch problemlos funktioniert.
+Ein Update des Stands werde ich hochladen, wenn ich das gesamte Projekt update, oder die genannten 3. Wochen vergangen sind.
+
 --- 
 
 ## Lizenz
 Dieses Projekt ist frei verfügbar für persönliche und Lernzwecke.
 
----
----
 --- 
 
 ## 🤝🏻 Feedback
@@ -394,8 +399,6 @@ Hinweis:
     Code-Beiträge (Pull Requests) nehme ich aktuell nicht an, da ich das Projekt selbst als Lernübung entwickeln möchte. 
     Danke für dein Verständnis!
 
----
----
 --- 
 
 ## 👤 Autor
@@ -404,8 +407,6 @@ Erstellt als Lernprojekt zur Vertiefung meiner Python-Kenntnisse.
 Ziel:
     Von Spielen zu produktivem Programmieren wechseln und CLI-Entwicklung meistern!
 
----
----
 --- 
 
 Viel Erfolg beim Organisieren deiner Aufgaben! 📝✨
