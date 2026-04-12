@@ -374,11 +374,16 @@ Alle Grundfunktionen sind implementiert und getestet. Das Projekt ist voll funkt
 
 Update v1.1.0 nach neuen Features (start_time, Wiederholungsanpassungen & Abschlusshistorie(completed)):
 Die Start Zeit funktioniert. Wird angegeben und die Farbe wird auch angepasst.
-Ob die Start Zeit aktualisiert wird, wenn die Deadline abgelaufen ist und die Wiederholung stattfindet, muss aber noch getestet werden.
-Die Anzeige der Wiederholung wurde auch angepasst. 
-Noch wird es ca. 3 Wochen dauern bis ich die Ergebnisse der ersten Anpassungswiederholung (jede 4. Woche) habe.
-Die Abschlusshistorie hat nach dem ersten Versuch problemlos funktioniert.
-Ein Update des Stands werde ich hochladen, wenn ich das gesamte Projekt update, oder die genannten 3. Wochen vergangen sind.
+Bei meinen bisherigen Tests hat sich die Start-Zeit, genauso wie die Deadline aktualisiert (natürlich nur bei Wiederholungen), nachdem diese abgelaufen ist.
+Die angepasste Wiederholungsanzeige (z.B. 'jede 4. Woche') funktioniert auch.
+Die Abschlusshistorie hat nach dem ersten 2 Versuchen problemlos funktioniert.
+
+Update v1.1.1 Anpassungen (todo list, Start/Deadline bei ToDos farblich angepasst.)
+Es gab nach dem Update von v1.1.0 ein kleines Problem mit "todo list". 
+Hier wurden die ersten Zeiten als Sortierung benutzt, weshalb eine ToDo welche bereits abgelaufen war und nun für den nächsten Monat wieder steht, dennoch als erstes angezeigt wurde.
+Dies wurde nun agepasst und nach den ersten Versuchen funktioniert es auch.
+Die Farbe der abgelaufenen ToDos war immer rot. 
+Das habe ich nun geändert, sodass man eher weiß, ob eine ToDos schon fertig ist, oder noch nicht. Sehr hilfreich bei "todo list -a".
 
 --- 
 

@@ -324,7 +324,7 @@ def calculate_duration(start: Optional[datetime], end: Optional[datetime]) -> Op
     return None
 
 
-def get_datetime_color(dt_string: Optional[str]) -> str:
+def get_datetime_color(dt_string: Optional[str], status: str) -> str:
     """Bestimme Farbe basierend auf Datetime
     
     Returns:
@@ -334,6 +334,9 @@ def get_datetime_color(dt_string: Optional[str]) -> str:
     """
     if not dt_string:
         return "white"
+    
+    if status == "finished":
+        return "dim"
 
     try:
         datetime_dt = datetime.fromisoformat(dt_string)
@@ -516,6 +519,8 @@ def list(
     table.add_column("Wiederholung", style="blue")
 
     reactivated_count = 0
+    new_todos = []
+
     for todo in sorted(todos, key=lambda x: x["deadline"]):
         # Reaktiviere ToDo
         reactivated = check_and_reactivate_todo(todo)
@@ -526,21 +531,44 @@ def list(
         if todo["status"] == "completed":
             continue
 
+        # Anpassungen
+        if todo["repeat"]:
+            todo["occurrence_count"] += count_occurrence(todo["repeat"], todo["deadline"])
+
+        if todo["start_time"]:
+            todo["start_time"] = update_datetime(todo["start_time"], todo["original_start_time"], todo["repeat"], todo["repeat_every"], todo["occurrence_count"])
+        
+        if todo["deadline"]:
+            todo["deadline"] = update_datetime(todo["deadline"], todo["original_deadline"], todo["repeat"], todo["repeat_every"], todo["occurrence_count"])
+
+        new_todos.append(todo)
+
+
+    for todo in sorted(new_todos, key=lambda x: x["deadline"]):
+        # # Reaktiviere ToDo
+        # reactivated = check_and_reactivate_todo(todo)
+        # if reactivated == True:
+        #     reactivated_count += 1
+
+        # # Ausblenden der erledigten
+        # if todo["status"] == "completed":
+        #     continue
+
         # Farbe für Status
         status_color = "green" if todo["status"] == "working" else "dim"
 
-        #Wiederholung-Anpassungen
+        # #Wiederholung-Anpassungen
         repeat_formatted = format_repeat(todo["repeat"], todo["repeat_every"])
-        todo["occurrence_count"] += count_occurrence(todo["repeat"], todo["deadline"])
+        # todo["occurrence_count"] += count_occurrence(todo["repeat"], todo["deadline"])
 
         # Start(-Time)-Anpassungen
-        todo["start_time"] = update_datetime(todo["start_time"], todo["original_start_time"], todo["repeat"], todo["repeat_every"], todo["occurrence_count"])
-        start_time_color = get_datetime_color(todo["start_time"])
+        # todo["start_time"] = update_datetime(todo["start_time"], todo["original_start_time"], todo["repeat"], todo["repeat_every"], todo["occurrence_count"])
+        start_time_color = get_datetime_color(todo["start_time"], todo["status"])
         start_time_formatted = format_datetime(todo["start_time"])
 
         # Deadline-Anpassungen
-        todo["deadline"] = update_datetime(todo["deadline"], todo["original_deadline"], todo["repeat"], todo["repeat_every"], todo["occurrence_count"])
-        deadline_color = get_datetime_color(todo["deadline"])
+        # todo["deadline"] = update_datetime(todo["deadline"], todo["original_deadline"], todo["repeat"], todo["repeat_every"], todo["occurrence_count"])
+        deadline_color = get_datetime_color(todo["deadline"], todo["status"])
         deadline_formatted = format_datetime(todo["deadline"])
 
         table.add_row(
@@ -585,12 +613,12 @@ def show(todo_id: int = typer.Argument(..., help="ID der ToDo")):
 
     # Start(-Time)-Anpassungen
     todo_data["start_time"] = update_datetime(todo_data["start_time"], todo_data["original_start_time"], todo_data["repeat"], todo_data["repeat_every"], todo_data["occurrence_count"])
-    start_time_color = get_datetime_color(todo_data["start_time"])
+    start_time_color = get_datetime_color(todo_data["start_time"], todo_data["status"])
     start_time_formatted = format_datetime(todo_data["start_time"])
 
     # Deadline-Anpassungen
     todo_data["deadline"] = update_datetime(todo_data["deadline"], todo_data["original_deadline"], todo_data["repeat"], todo_data["repeat_every"], todo_data["occurrence_count"])
-    deadline_color = get_datetime_color(todo_data["deadline"])
+    deadline_color = get_datetime_color(todo_data["deadline"], todo_data["status"])
     deadline_formatted = format_datetime(todo_data["deadline"])
     
     # Erstelle Detail-Ansicht
