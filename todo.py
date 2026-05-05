@@ -236,73 +236,6 @@ def format_repeat(rp_string: Optional[str], every: Optional[int]) -> str:
             return "-"
         else:
             return rp_string
-    
-
-def count_occurrence(rp_string: Optional[str], deadline: Optional[str]) -> int:
-    """Berechne Anzahl der Wie"""
-    if not rp_string:
-        return 0
-    if not deadline:
-        return 0
-
-    try:
-        deadline_dt = datetime.fromisoformat(deadline)
-        now = datetime.now()
-        diff = deadline_dt - now
-        
-        valid_repeat = ["d", "w", "m", "y"]
-        if diff.total_seconds() < 0 and rp_string in valid_repeat:
-            return 1
-        else:
-            return 0
-    except:
-        return 0
-
-
-def update_datetime(dt_string: Optional[str], original_dt: Optional[str], repeat: Optional[str], every: Optional[int], occurrence: Optional[int]) -> str:
-    """Aktualisiere Datetime-String für Anzeige"""
-    if not dt_string:
-        return "-"
-    if not original_dt:
-        return "Fehler: importieren der Parameter-Daten"
-    if not repeat:
-        return dt_string
-    if repeat is None:
-        return dt_string
-    if every is None:
-        return dt_string
-    if occurrence is None:
-        return dt_string
-    
-    try:
-        dt = datetime.fromisoformat(dt_string)
-        o_dt = datetime.fromisoformat(original_dt)
-        now = datetime.now()
-        diff = dt - now
-
-        if diff.total_seconds() < 0:
-            # Tägliche Wiederholung
-            if repeat == "d":
-                dt = o_dt + relativedelta(days=+(occurrence*every))
-            # Wöchentliche Wiederholung
-            elif repeat == "w":
-                dt = o_dt + relativedelta(weeks=+(occurrence*every))
-            # Monatliche Wiederholung
-            elif repeat == "m":
-                dt = o_dt + relativedelta(months=+(occurrence*every))
-            # Jährliche Wiederholung
-            elif repeat == "y":
-                dt = o_dt + relativedelta(years=+(occurrence*every))
-            # Keine Wiederholung
-            else:
-                return dt_string
-            
-            return dt.isoformat()
-        
-        else:
-            return dt_string
-    except:
-        return dt_string
 
 
 def format_datetime(dt_string: Optional[str]) -> str:
@@ -353,22 +286,68 @@ def get_datetime_color(dt_string: Optional[str], status: str) -> str:
         return "white"
     
 
-def check_and_reactivate_todo(todo: dict):
-    """Reaktiviere ToDo deren Deadline bereits abgelaufen ist"""
+def check_and_update_todo(todo: dict) -> bool:
+    """Prüfe und aktualisiere ToDos deren Deadline abgelaufen ist
+    Reaktiviert die ToDo und berechnet neue Deadline für wiederkehrende Aufgaben
 
-    now = datetime.now()
-    reactivated = False
+    Returns:
+        True wenn ToDo reaktiviert wurde
+    """
 
-    if todo["status"] == "completed":
-        deadline = todo.get("deadline")
-
-        if deadline and datetime.fromisoformat(deadline) < now:
-            todo["status"] = "working"
-            reactivated = True
-
-        save_todo(todo)
+    if todo["status"] == "finished":
+        return False
     
-    return reactivated
+    if todo.get("repeat") not in ["d", "w", "m", "y"]:
+        return False
+
+    deadline = todo.get("deadline")
+    if not deadline:
+        return False
+    
+    try:
+        deadline_dt = datetime.fromisoformat(deadline)
+    except ValueError:
+        return False
+    
+    now = datetime.now()
+
+    # Deadline noch nicht abgelaufen
+    if deadline_dt >= now:
+        return False
+    
+    # Neue Berechnungen & Reaktivierung:
+    todo["status"] = "working"
+
+    todo["occurrence_count"] = todo.get("occurrence_count", 0) + 1
+
+    if original_start := todo.get("original_start_time"):
+        start_dt = datetime.fromisoformat(original_start)
+        new_start_time = calculate_next_datetime(start_dt, todo["repeat"], todo["repeat_every"], todo["occurrence_count"])
+        todo["start_time"] = new_start_time.isoformat()
+    if original_deadline := todo.get("original_deadline"):
+        deadline_dt = datetime.fromisoformat(original_deadline)
+        new_deadline = calculate_next_datetime(deadline_dt, todo["repeat"], todo["repeat_every"], todo["occurrence_count"])
+        todo["deadline"] = new_deadline.isoformat()
+
+    save_todo(todo)
+
+    return True
+    
+def calculate_next_datetime(dt_string, repeat, every, occurrence):
+    """Führe die Berechnung aus"""
+
+    if repeat == "d":
+        return dt_string + relativedelta(days=+(occurrence*every))
+    elif repeat == "w":
+        return dt_string + relativedelta(weeks=+(occurrence*every))
+    elif repeat == "m": 
+        return dt_string + relativedelta(months=+(occurrence*every))
+    elif repeat == "y":
+        return dt_string + relativedelta(years=+(occurrence*every))
+    
+    return dt_string
+    
+
 
 
 @app.command()
@@ -519,55 +498,44 @@ def list(
     table.add_column("Wiederholung", style="blue")
 
     reactivated_count = 0
-    new_todos = []
 
-    for todo in sorted(todos, key=lambda x: x["deadline"]):
-        # Reaktiviere ToDo
-        reactivated = check_and_reactivate_todo(todo)
-        if reactivated == True:
+    # 1. Reaktiviere die ToDos
+    for todo in todos:
+        if check_and_update_todo(todo):
             reactivated_count += 1
 
-        # Ausblenden der erledigten
-        if todo["status"] == "completed":
-            continue
+    # 2. Ausfiltern der ToDos
+    if finished:
+        # Nur finished
+        visible_todos = [t for t in todos if t["status"] == "finished"]
+    elif all:
+        # Alle (working + finished + completed)
+        visible_todos = todos
+    else:
+        # Nur working
+        visible_todos = [t for t in todos if t["status"] != "completed"]
 
-        # Anpassungen
-        if todo["repeat"]:
-            todo["occurrence_count"] += count_occurrence(todo["repeat"], todo["deadline"])
+    if not visible_todos:
+        console.print("[yellow]Keine ToDos in dieser Ansicht.[/yellow]")
+        return
 
-        if todo["start_time"]:
-            todo["start_time"] = update_datetime(todo["start_time"], todo["original_start_time"], todo["repeat"], todo["repeat_every"], todo["occurrence_count"])
-        
-        if todo["deadline"]:
-            todo["deadline"] = update_datetime(todo["deadline"], todo["original_deadline"], todo["repeat"], todo["repeat_every"], todo["occurrence_count"])
-
-        new_todos.append(todo)
-
-
-    for todo in sorted(new_todos, key=lambda x: x["deadline"]):
-        # # Reaktiviere ToDo
-        # reactivated = check_and_reactivate_todo(todo)
-        # if reactivated == True:
-        #     reactivated_count += 1
-
-        # # Ausblenden der erledigten
-        # if todo["status"] == "completed":
-        #     continue
-
+    # 3. Sortieren der ToDos
+    for todo in sorted(visible_todos, key=lambda x: x.get("deadline") or "9999-12-31"):
         # Farbe für Status
-        status_color = "green" if todo["status"] == "working" else "dim"
+        status_color = {
+            "working": "green",
+            "completed": "yellow",
+            "finished": "dim"
+        }.get(todo["status"], "white")
 
         # #Wiederholung-Anpassungen
         repeat_formatted = format_repeat(todo["repeat"], todo["repeat_every"])
-        # todo["occurrence_count"] += count_occurrence(todo["repeat"], todo["deadline"])
 
         # Start(-Time)-Anpassungen
-        # todo["start_time"] = update_datetime(todo["start_time"], todo["original_start_time"], todo["repeat"], todo["repeat_every"], todo["occurrence_count"])
         start_time_color = get_datetime_color(todo["start_time"], todo["status"])
         start_time_formatted = format_datetime(todo["start_time"])
 
         # Deadline-Anpassungen
-        # todo["deadline"] = update_datetime(todo["deadline"], todo["original_deadline"], todo["repeat"], todo["repeat_every"], todo["occurrence_count"])
         deadline_color = get_datetime_color(todo["deadline"], todo["status"])
         deadline_formatted = format_datetime(todo["deadline"])
 
@@ -596,13 +564,12 @@ def show(todo_id: int = typer.Argument(..., help="ID der ToDo")):
         raise typer.Exit(1)
     
     # Überprüfe Reaktivierung
-    reactivated = check_and_reactivate_todo(todo_data)
+    reactivated = check_and_update_todo(todo_data)
     if reactivated == True:
         console.print("[dim]ToDo wurde reaktiviert![/dim]")
     
     #Wiederholung-Anpassungen
     repeat_formatted = format_repeat(todo_data["repeat"], todo_data["repeat_every"])
-    todo_data["occurrence_count"] += count_occurrence(todo_data["repeat"], todo_data["deadline"])
 
     # Duration-Anpassung
     duration = False
@@ -612,12 +579,10 @@ def show(todo_id: int = typer.Argument(..., help="ID der ToDo")):
         duration = True
 
     # Start(-Time)-Anpassungen
-    todo_data["start_time"] = update_datetime(todo_data["start_time"], todo_data["original_start_time"], todo_data["repeat"], todo_data["repeat_every"], todo_data["occurrence_count"])
     start_time_color = get_datetime_color(todo_data["start_time"], todo_data["status"])
     start_time_formatted = format_datetime(todo_data["start_time"])
 
     # Deadline-Anpassungen
-    todo_data["deadline"] = update_datetime(todo_data["deadline"], todo_data["original_deadline"], todo_data["repeat"], todo_data["repeat_every"], todo_data["occurrence_count"])
     deadline_color = get_datetime_color(todo_data["deadline"], todo_data["status"])
     deadline_formatted = format_datetime(todo_data["deadline"])
     

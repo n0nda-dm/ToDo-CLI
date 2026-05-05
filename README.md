@@ -367,23 +367,79 @@ Weitere Vorschläge sind willkommen!
 
 --- 
 
-## Status
-Version: 1.1.0
+## Changelog
 
-Alle Grundfunktionen sind implementiert und getestet. Das Projekt ist voll funktionsfähig.
+Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
-Update v1.1.0 nach neuen Features (start_time, Wiederholungsanpassungen & Abschlusshistorie(completed)):
-Die Start Zeit funktioniert. Wird angegeben und die Farbe wird auch angepasst.
-Bei meinen bisherigen Tests hat sich die Start-Zeit, genauso wie die Deadline aktualisiert (natürlich nur bei Wiederholungen), nachdem diese abgelaufen ist.
-Die angepasste Wiederholungsanzeige (z.B. 'jede 4. Woche') funktioniert auch.
-Die Abschlusshistorie hat nach dem ersten 2 Versuchen problemlos funktioniert.
+> **Versionshistorie**: Bis Version 1.0.0 wurde das Projekt als `0.1.0` entwickelt.
 
-Update v1.1.1 Anpassungen (todo list, Start/Deadline bei ToDos farblich angepasst.)
-Es gab nach dem Update von v1.1.0 ein kleines Problem mit "todo list". 
-Hier wurden die ersten Zeiten als Sortierung benutzt, weshalb eine ToDo welche bereits abgelaufen war und nun für den nächsten Monat wieder steht, dennoch als erstes angezeigt wurde.
-Dies wurde nun agepasst und nach den ersten Versuchen funktioniert es auch.
-Die Farbe der abgelaufenen ToDos war immer rot. 
-Das habe ich nun geändert, sodass man eher weiß, ob eine ToDos schon fertig ist, oder noch nicht. Sehr hilfreich bei "todo list -a".
+---
+
+### [1.1.2] - 2026-05-03
+
+#### Fixed
+- ToDos mit Status "completed" wurden zu früh reaktiviert
+- Deadlines wurden nicht korrekt bei wiederkehrenden Aufgaben aktualisiert
+
+#### Changed
+- Refactored: `check_and_reactivate_todo()` und `update_datetime()` zusammengelegt zu `check_and_update_todo()`
+
+#### Migration (für bestehende Nutzer)
+Falls eine ToDo nach dem Update falsch berechnet wird:
+1. Öffne die `.json` Datei im ToDo-Verzeichnis (z.B. `26.json`)
+2. Setze `start_time` und `deadline` auf die aktuellen Werte
+3. Setze `occurrence_count` auf die richtige Anzahl (z.B. `1` für die erste Wiederholung nach Original)
+4. Beim nächsten `todo list` wird es korrekt berechnet
+
+**Beispiel:**
+```json
+{
+    "start_time": "2026-05-01T08:00:00",            //Aktueller Zeitraun
+    "deadline": "2026-05-03T20:00:00",              //Aktueller Zeitraun
+    "original_start_time": "2026-04-01T08:00:00",   //Erster Zeitraum
+    "original_deadline": "2026-04-03T20:00:00",     //Erster Zeitraum
+    "occurrence_count": 1,                          //Anzahl Wiederholungen
+}
+```
+
+---
+
+### [1.1.1] - 2026-04-13
+
+#### Fixed
+- Sortierung bei `todo list` nutzte veraltete Zeiten statt aktuelle Zeitspanne
+
+#### Changed
+- Farbcodierung für Zeiten: Abgeschlossene ToDos zeigen nicht mehr rot (bessere Unterscheidung bei `todo list -a`)
+
+---
+
+### [1.1.0] - 2026-04-01
+
+#### Added
+- **Start-Zeit**: ToDos können jetzt eine Start-Zeit haben (von-bis statt nur bis)
+- **Completion History**: Wiederholende ToDos können als "completed" markiert werden
+    - Wird ausgeblendet bis Zeitraum vorbei ist
+    - Historie zeigt alle Abschlüsse in `todo show`
+
+#### Changed
+- **Wiederholungs-Anzeige**: Zeigt jetzt "jede 4. Woche" statt nur "wöchentlich"
+
+---
+
+### [1.0.0] - 2026-02-13
+
+Erste stabile Version!
+
+#### Features
+- Erstellen, Bearbeiten, Löschen von ToDos
+- Prioritäten (low, medium, high, urgent)
+- Deadlines mit Farbcodierung
+- Wiederholende Aufgaben (täglich, wöchentlich, monatlich, jährlich)
+- Status-Verwaltung (working, finished)
+- Rich CLI mit farbiger Ausgabe
+
+> **Hinweis**: Diese Version wurde ursprünglich als `0.1.0` released
 
 --- 
 
