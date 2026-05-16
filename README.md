@@ -81,7 +81,9 @@ todo create "Aufgabe"
 # Mit allen Optionen
 todo create "Arzttermin" \
 --description "Zahnarzt Dr. Müller" \
---priority urgent \
+--category "Gesundheit" \
+--tags "Arzt, Zähne" \
+--priority "high" \
 --start "15.02.2026-08:30" \
 --deadline "15.02.2026-14:30" \
 --repeat "w" \
@@ -89,6 +91,8 @@ todo create "Arzttermin" \
 ```
 ##### Optionen:
 - --description TEXT - Beschreibung der Aufgabe
+- --category TEXT - Kategorie der Aufgabe
+- --tags TEXT - Tags der Aufgabe
 - -p, --priority [low|medium|high|urgent] - Priorität (Standard: medium)
 - -s, --start TEXT Start-Time im Format: dd.mm.yyyy-HH:MM
 - -d, --deadline TEXT - Deadline im Format: dd.mm.yyyy-HH:MM
@@ -149,6 +153,8 @@ todo update <ID> --title "Neuer Titel" --priority urgent --finished
 ##### Optionen:
 - -t, --title TEXT - Neuer Titel
 - --description TEXT - Beschreibung der Aufgabe
+- --category TEXT - Kategorie der Aufgabe
+- --tags TEXT - Tags der Aufgabe
 - -p, --priority [low|medium|high|urgent] - Priorität (Standard: medium)
 - -s, --start TEXT Start-Time im Format: dd.mm.yyyy-HH:MM
 - -d, --deadline TEXT - Deadline im Format: dd.mm.yyyy-HH:MM
@@ -372,6 +378,21 @@ Weitere Vorschläge sind willkommen!
 Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 > **Versionshistorie**: Bis Version 1.0.0 wurde das Projekt als `0.1.0` entwickelt.
+
+---
+
+### [1.2.0] - 2026-05-16
+
+#### Added
+- Kategorie: ToDos können nun eine Kategorie haben, z.B. --category "Geschäftlich"
+- Tags: ToDos können nun auch Tags haben, z.B. --tags "dev, Python, coding, CLI-Tool"
+
+#### Changed
+- todo list: Zeigt nun nicht mehr Status an, hierfür aber Kategorie und Tags
+- get_datetime_color(): Nun haben auch completed ToDos eine eigene Farbe, sodass der Status bei "todo list" nicht mehr benötigt wird
+
+#### Migration (fuer bestehende Nutzer)
+Solltet ihr euer Tool updaten, müsst ihr erstmal "todo migrate" ausführen.
 
 ---
 

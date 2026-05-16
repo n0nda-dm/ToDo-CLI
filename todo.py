@@ -156,6 +156,8 @@ def get_todo_schema() -> dict:
         "created_at": None,
         # Optionale Felder (mit Standardwerten)
         "description": None,
+        "category": None,
+        "tags": [],
         "priority": "medium",
         "status": "working",
         "start_time": None,
@@ -270,6 +272,9 @@ def get_datetime_color(dt_string: Optional[str], status: str) -> str:
     
     if status == "finished":
         return "dim"
+    
+    if status == "completed":
+        return "cyan"
 
     try:
         datetime_dt = datetime.fromisoformat(dt_string)
@@ -346,6 +351,26 @@ def calculate_next_datetime(dt_string, repeat, every, occurrence):
         return dt_string + relativedelta(years=+(occurrence*every))
     
     return dt_string
+
+def format_tags(tags: list) -> str:
+    """Hier werden die Tags richtig formatiert"""
+    if not tags:
+        return "-"
+    if len(tags) <= 2:
+        return ", ".join(tags)
+    visible = ", ".join(tags[:2])
+    rest = len(tags) - 2
+    return f"{visible}, +{rest}"
+
+def format_datetime_list(dt_str: str | None) -> str:
+    """Hier werden die Zeiten für 'todo list' nochmal angepasst"""
+    if not dt_str:
+        return "-"
+    
+    parts = dt_str.split(" – ", 1)
+    if len(parts) == 2:
+        return f"{parts[0]}\n{parts[1]}"
+    return dt_str
     
 
 
@@ -354,6 +379,8 @@ def calculate_next_datetime(dt_string, repeat, every, occurrence):
 def create(
     title: str = typer.Argument(..., help="Titel der ToDo"),
     description: str = typer.Option("", "--description", help="Beschreibung der ToDo"),
+    category: str = typer.Option(None, "--category", help="Kategorie der ToDo"),
+    tags: str = typer.Option(None, "--tags", help="Tags der ToDo"),
     priority: str = typer.Option("medium", "--priority", "-p", help="Priorität: low/medium/high/urgent"),
     start: Optional[str] = typer.Option(None, "--start", "-s", help="Start-Time im Format: DD.MM.YYYY-HH:MM"),
     deadline: Optional[str] = typer.Option(None, "--deadline", "-d", help="Deadline im Format: DD.MM.YYYY-HH:MM"),
@@ -362,6 +389,18 @@ def create(
 ):
     """Erstelle eine neue ToDo"""
     ensure_directories()
+
+    # Validiere Tags
+    temp_tags = []
+    if tags:
+        try:
+            # Aufteilung der Tags
+            tags_clean = tags.replace(",", "_").replace(".", "_").replace(" ", "_")
+            temp_tags = [t for t in tags_clean.split("_") if t]
+        except:
+            console.print("[red]Fehler:[/red] Tags ungültig.")
+            console.print("[yellow]Beispiel:[/yellow] 'dev, habit_cli’")
+            raise typer.Exit(1)
     
     # Validiere Priorität
     valid_priorities = ["low", "medium", "high", "urgent"]
@@ -438,6 +477,8 @@ def create(
         "id": get_next_id(),
         "title": title,
         "description": description,
+        "category": category.strip() if category else None,
+        "tags": temp_tags,
         "priority": priority,
         "status": "working",
         "start_time": start_iso,
@@ -491,10 +532,11 @@ def list(
     table = Table(title="📝 Deine ToDos")
     table.add_column("ID", style="cyan", justify="right")
     table.add_column("Titel", style="white")
-    table.add_column("Priorität", style="magenta")
-    table.add_column("Status", style="green")
-    table.add_column("Start", style="yellow")
-    table.add_column("Deadline", style="yellow")
+    table.add_column("Prio.", style="magenta")
+    table.add_column("Kategorie", style="cyan")
+    table.add_column("Tags", style="cyan")
+    table.add_column("Start", style="yellow", justify="center")
+    table.add_column("Deadline", style="yellow", justify="center")
     table.add_column("Wiederholung", style="blue")
 
     reactivated_count = 0
@@ -521,13 +563,6 @@ def list(
 
     # 3. Sortieren der ToDos
     for todo in sorted(visible_todos, key=lambda x: x.get("deadline") or "9999-12-31"):
-        # Farbe für Status
-        status_color = {
-            "working": "green",
-            "completed": "yellow",
-            "finished": "dim"
-        }.get(todo["status"], "white")
-
         # #Wiederholung-Anpassungen
         repeat_formatted = format_repeat(todo["repeat"], todo["repeat_every"])
 
@@ -543,9 +578,10 @@ def list(
             str(todo["id"]),
             todo["title"],
             todo["priority"],
-            f"[{status_color}]{todo["status"]}[/{status_color}]",
-            f"[{start_time_color}]{start_time_formatted}[/{start_time_color}]",
-            f"[{deadline_color}]{deadline_formatted}[/{deadline_color}]",
+            todo["category"],
+            f"{format_tags(todo.get("tags", []))}",
+            f"[{start_time_color}]{format_datetime_list(start_time_formatted)}[/{start_time_color}]",
+            f"[{deadline_color}]{format_datetime_list(deadline_formatted)}[/{deadline_color}]",
             f"{repeat_formatted}"
         )
 
@@ -567,6 +603,13 @@ def show(todo_id: int = typer.Argument(..., help="ID der ToDo")):
     reactivated = check_and_update_todo(todo_data)
     if reactivated == True:
         console.print("[dim]ToDo wurde reaktiviert![/dim]")
+
+    # Farbe für Status
+    status_color = {
+        "working": "green",
+        "completed": "yellow",
+        "finished": "dim"
+    }.get(todo_data["status"], "white")
     
     #Wiederholung-Anpassungen
     repeat_formatted = format_repeat(todo_data["repeat"], todo_data["repeat_every"])
@@ -592,10 +635,14 @@ def show(todo_id: int = typer.Argument(..., help="ID der ToDo")):
     console.print(f"    {todo_data["title"]}")
     console.print("[bold]Beschreibung:[/bold]")
     console.print(f"    {todo_data["description"] or "---"}")
+    console.print("[bold]Kategorie:[/bold]")
+    console.print(f"    {todo_data["category"] or "---"}")
+    console.print("[bold]Tags:[/bold]")
+    console.print(f"    {todo_data["tags"]}")
     console.print("[bold]Priorität:[/bold]")
     console.print(f"    {todo_data["priority"]}")
     console.print("[bold]Status:[/bold]")
-    console.print(f"    {todo_data["status"]}")
+    console.print(f"    [{status_color}]{todo_data["status"]}[/{status_color}]")
     console.print("[bold]Start:[/bold]")
     console.print(f"    [{start_time_color}]{start_time_formatted}[/{start_time_color}]")
     console.print("[bold]Deadline:[/bold]")
@@ -629,6 +676,8 @@ def update(
     todo_id: int = typer.Argument(..., help="ID der ToDo"),
     title: Optional[str] = typer.Option(None, "--title", "-t", help="Neuer Titel"),
     description: Optional[str] = typer.Option(None, "--description", help="Neue Beschreibung"),
+    category: Optional[str] = typer.Option(None, "--category", help="Kategorie der ToDo"),
+    tags: Optional[str] = typer.Option(None, "--tags", help="Tags der ToDo"),
     priority: Optional[str] = typer.Option(None, "--priority", "-p", help="Neue Priorität"),
     start_time: Optional[str] = typer.Option(None, "--start-time", "-s", help="Start im Format: DD.MM.YYYY-HH:MM"),
     deadline: Optional[str] = typer.Option(None, "--deadline", "-d", help="Deadline im Format: DD.MM.YYYY-HH:MM"),
@@ -650,6 +699,22 @@ def update(
 
     if description is not None:
         todo_data["description"] = description
+
+    if category:
+        todo_data["category"] = category.strip()
+
+    temp_tags = []
+    if tags:
+        try:
+            # Aufteilung der Tags
+            tags_clean = tags.replace(",", "_").replace(".", "_").replace(" ", "_")
+            temp_tags = [t for t in tags_clean.split("_") if t]
+            todo_data["tags"] = temp_tags
+        except:
+            console.print("[red]Fehler:[/red] Tags ungültig.")
+            console.print("[yellow]Beispiel:[/yellow] 'dev, habit_cli’")
+            raise typer.Exit(1)
+        
 
     if priority:
         valid_priorities = ["low", "medium", "high", "urgent"]
