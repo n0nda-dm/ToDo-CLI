@@ -8,6 +8,8 @@ Eine einfache, farbenfrohe Kommandozeilen-Aufgabenverwaltung geschrieben in Pyth
     - 🔴 Rot = Deadline überschritten
     - 🟡 Gelb = Weniger als 24 Stunden
     - 🟢 Grün = Noch Zeit
+    - 🔵 Cyan = Für aktuellen Zeitraum abgeschlossen (completed)
+    - ⚪ Grau(dim) = Endgültig abgeschlossen (finished)
 - Übersichtliche Tabellen dank Rich-Library
 - Automatische Trennung von aktiven und abgeschlossenen Aufgaben
 - ⚙️ Konfigurierbarer Speicherort
@@ -99,6 +101,8 @@ todo create "Arzttermin" \
 - -r, --repeat [d|w|m|y] - Wiederholung (Standard: None)
 - -e, --every INTEGER - Anpassungen der Wiederholungen (z.B.: -r m -e 4 = Wiederholung findet nicht monatlich, sondern alle 4 Monate statt)
 
+> **Hinweis:** `--category` und `--tags` haben bei `todo create` absichtlich keine Kurzflags,
+> da `-c` und `-t` bei `todo update` bereits für `--completed` und `--title` vergeben sind.
 
 #### 📋 ToDos auflisten
 ```bash
@@ -366,7 +370,6 @@ Verwendete Ressourcen:
 ## Mögliche zukünftige Features
 Ideen für mögliche Erweiterungen (keine Garantie):
 
-- Tags/Kategorien - Aufgaben nach Themen gruppieren
 - Export Funktion - Liste als CSV exportieren
 
 Weitere Vorschläge sind willkommen!
